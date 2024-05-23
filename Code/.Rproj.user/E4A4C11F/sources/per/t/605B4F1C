@@ -3,7 +3,7 @@
     "path": "C:/Users/kiet2/Desktop/BTL_XSTK--DT03--N10/Code/Processing Data.Rmd",
     "project_path": "Processing Data.Rmd",
     "type": "r_markdown",
-    "hash": "1910004991",
+    "hash": "1278628507",
     "contents": "",
     "dirty": false,
     "created": 1716460398460.0,
@@ -13,15 +13,15 @@
         "chunk_output_type": "inline",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "206,42",
-        "scrollLine": "194"
+        "cursorPosition": "11,16",
+        "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1716482344,
+    "lastKnownWriteTime": 1716483612,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1716482344626,
+    "last_content_update": 1716483612148,
     "read_only": false,
     "read_only_alternatives": []
 }

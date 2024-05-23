@@ -1,13 +1,11 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: rmarkdown::github_document
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
-
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
 
 ```{r}
 # Read file CSV
@@ -64,7 +62,6 @@ criterion <- nn_cross_entropy_loss()
 optimizer <- optim_adam(model$parameters, lr = 0.001)
 ```
 
-
 ```{r}
 num_epochs <- 1000
 
@@ -110,6 +107,7 @@ model$eval()
 
 
 ```
+
 ```{r}
 # Load the ggplot2 library
 library(ggplot2)
