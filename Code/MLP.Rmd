@@ -1,0 +1,174 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+
+```{r}
+# Read file CSV
+X_train <- read.csv("../Data/X_train.csv")
+Y_train <- read.csv("../Data/Y_train.csv", header = TRUE)$Condition  # Ensure Y_train is read as a vector
+X_test <- read.csv("../Data/X_test.csv")
+Y_test <- read.csv("../Data/Y_test.csv", header = TRUE)$Condition  # Ensure Y_test is read as a vector
+
+# Convert Y_train as_factor
+if (!is.factor(Y_train)) {
+  Y_train <- as.factor(Y_train)
+}
+```
+
+```{r Set up Pytorch MLP}
+# Load torch library
+library(torch)
+library(torchvision)
+if(cuda_is_available()){
+  device <- torch_device('cuda')
+} else {
+  device <- torch_device('cpu')
+}
+
+# Convert data to tensors
+X_train <- torch_tensor(as.matrix(X_train), dtype = torch_float())
+X_test <- torch_tensor(as.matrix(X_test), dtype = torch_float())
+Y_train <- torch_tensor(as.numeric(Y_train), dtype = torch_long())  # Adjust labels if needed
+Y_test <- torch_tensor(as.numeric(Y_test), dtype = torch_long())    # Adjust labels if needed
+
+# Define the MLP model with hidden layers
+
+model <- nn_sequential(
+  nn_linear(in_features = ncol(X_train), out_features = 64),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 64, out_features = 32),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 32, out_features = 32),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 32, out_features = 16),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 16 ,out_features = 3),
+)
+
+
+
+# Define loss function and optimizer
+criterion <- nn_cross_entropy_loss()
+
+optimizer <- optim_adam(model$parameters, lr = 0.001)
+```
+
+
+```{r}
+num_epochs <- 1000
+
+# Initialize vectors to store accuracies
+accuracys_test <- c()
+accuracys_train <- c()
+
+# Initialize vectors to store loss history
+loss_history_train <- c()
+loss_history_test <- c()
+
+for (epoch in 0:num_epochs) {
+  # Train for one epoch
+  optimizer$zero_grad()
+  Y_pred_train <- model(X_train)
+  Y_pred_test <- model(X_test)
+  loss_train <- criterion(Y_pred_train, Y_train)
+  loss_test <- criterion(Y_pred_test, Y_test)  # Calculate loss for test set
+  loss_train$backward()
+  optimizer$step()
+  
+  # Append loss to loss_history vectors
+  loss_history_train <- c(loss_history_train, loss_train$item())
+  loss_history_test <- c(loss_history_test, loss_test$item())
+  
+  if (epoch %% 5 == 0) {
+    predicted_train <- Y_pred_train$argmax(dim = 2)
+    accuracy_train <- (predicted_train == Y_train)$sum()$item() / Y_train$size()
+    
+    predicted_labels <- Y_pred_test$argmax(dim = 2)
+    accuracy_test <- (predicted_labels == Y_test)$sum()$item() / Y_test$size()
+    
+    cat("Epoch:", epoch, " Loss_Train:", loss_train$item(), " Loss_Test:", loss_test$item(), " Accuracy_Train: ", accuracy_train, " Accuracy_Test: ", accuracy_test, "\n")
+    
+    # Append accuracies to respective vectors
+    accuracys_train <- c(accuracys_train, accuracy_train)
+    accuracys_test <- c(accuracys_test, accuracy_test)
+  }
+}
+
+# Evaluate the model
+model$eval()
+
+
+```
+```{r}
+# Load the ggplot2 library
+library(ggplot2)
+
+# Create a dataframe to store the loss and accuracies
+plot_data_loss <- data.frame(
+  epoch = seq(0, num_epochs, by = 5),
+  loss_train = rep(0, length.out = length(seq(0, num_epochs, by = 5))),
+  loss_test = rep(0, length.out = length(seq(0, num_epochs, by = 5)))
+)
+
+plot_data_accuracy <- data.frame(
+  epoch = seq(0, num_epochs, by = 5),
+  accuracy_train = rep(0, length.out = length(seq(0, num_epochs, by = 5))),
+  accuracy_test = rep(0, length.out = length(seq(0, num_epochs, by = 5)))
+)
+
+# Update plot_data_loss with loss values
+for (i in 1:nrow(plot_data_loss)) {
+  plot_data_loss[i, "loss_train"] <- loss_history_train[i]  # Assuming loss_history_train is defined
+  plot_data_loss[i, "loss_test"] <- loss_history_test[i]  # Assuming loss_history_test is defined
+}
+
+# Update plot_data_accuracy with accuracy values
+for (i in 1:nrow(plot_data_accuracy)) {
+  plot_data_accuracy[i, "accuracy_train"] <- accuracys_train[i]  # Assuming accuracys_train is defined
+  plot_data_accuracy[i, "accuracy_test"] <- accuracys_test[i]  # Assuming accuracys_test is defined
+}
+
+# Create the plot for loss
+plot_loss <- ggplot(plot_data_loss, aes(x = epoch)) +
+  geom_line(aes(y = loss_train, color = "Training Loss")) +
+  geom_line(aes(y = loss_test, color = "Test Loss")) +
+  labs(title = "Loss Over Epochs",
+       x = "Epoch",
+       y = "Loss") +
+  scale_color_manual(values = c("Training Loss" = "blue", "Test Loss" = "red")) +
+  theme_minimal()
+
+# Create the plot for accuracies
+plot_accuracy <- ggplot(plot_data_accuracy, aes(x = epoch)) +
+  geom_line(aes(y = accuracy_train, color = "Training Accuracy")) +
+  geom_line(aes(y = accuracy_test, color = "Test Accuracy")) +
+  labs(title = "Accuracies Over Epochs",
+       x = "Epoch",
+       y = "Accuracy") +
+  scale_color_manual(values = c("Training Accuracy" = "green", "Test Accuracy" = "purple")) +
+  theme_minimal()
+
+# Display the plots
+print(plot_loss)
+print(plot_accuracy)
+
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

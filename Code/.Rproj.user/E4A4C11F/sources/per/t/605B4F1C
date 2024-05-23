@@ -1,9 +1,9 @@
 {
     "id": "605B4F1C",
-    "path": "C:/Users/kiet2/Desktop/BTL_XSTK/Code/XTSK.Rmd",
-    "project_path": "XTSK.Rmd",
+    "path": "C:/Users/kiet2/Desktop/BTL_XSTK--DT03--N10/Code/Processing Data.Rmd",
+    "project_path": "Processing Data.Rmd",
     "type": "r_markdown",
-    "hash": "2869786809",
+    "hash": "1910004991",
     "contents": "",
     "dirty": false,
     "created": 1716460398460.0,
@@ -13,15 +13,15 @@
         "chunk_output_type": "inline",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "1,19",
-        "scrollLine": "0"
+        "cursorPosition": "206,42",
+        "scrollLine": "194"
     },
     "folds": "",
-    "lastKnownWriteTime": 1716459464,
+    "lastKnownWriteTime": 1716482344,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1716459464,
+    "last_content_update": 1716482344626,
     "read_only": false,
     "read_only_alternatives": []
 }

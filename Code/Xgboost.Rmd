@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+```{r}
+# Read file CSV
+X_train <- read.csv("../Data/X_train.csv")
+Y_train <- read.csv("../Data/Y_train.csv", header = TRUE)$Condition  # Ensure Y_train is read as a vector
+X_test <- read.csv("../Data/X_test.csv")
+Y_test <- read.csv("../Data/Y_test.csv", header = TRUE)$Condition  # Ensure Y_test is read as a vector
+
+# Convert Y_train as_factor
+if (!is.factor(Y_train)) {
+  Y_train <- as.factor(Y_train)
+}
+```
+
+```{r}
+library(xgboost)
+set.seed(100)
+# Chuyển đổi dữ liệu thành định dạng DMatrix của XGBoost
+dtrain <- xgb.DMatrix(data = as.matrix(X_train), label = as.numeric(Y_train) - 1)
+dtest <- xgb.DMatrix(data = as.matrix(X_test), label = as.numeric(Y_test) - 1)
+
+# Đặt tham số cho mô hình XGBoost
+params <- list(
+  objective = "multi:softprob",  
+  num_class = length(unique(Y_train)),  
+  eval_metric = "mlogloss", 
+  eta = 0.1,  # learning rate
+  max_depth = 6,  
+  subsample = 0.8, 
+  colsample_bytree = 0.8 
+)
+
+# Số vòng lặp (trees)
+nrounds <- 100
+
+# Huấn luyện mô hình
+model <- xgb.train(
+  params = params,
+  data = dtrain,
+  nrounds = nrounds,
+  watchlist = list(train = dtrain, eval = dtest),
+  print_every_n = 10
+)
+
+# Dự đoán trên tập dữ liệu kiểm tra
+pred_probs <- predict(model, as.matrix(X_test))
+predictions <- max.col(matrix(pred_probs, ncol = length(unique(Y_train)), byrow = TRUE)) - 1
+
+# Tạo bảng confusion matrix và tính độ chính xác
+confusion_matrix <- table(Y_test, predictions)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+# In kết quả
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 4)))
+
+# Xem độ quan trọng của các biến
+importance_matrix <- xgb.importance(model = model)
+print(importance_matrix)
+xgb.plot.importance(importance_matrix)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

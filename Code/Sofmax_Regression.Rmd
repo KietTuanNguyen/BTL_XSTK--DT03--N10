@@ -1,0 +1,80 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# Read file CSV
+X_train <- read.csv("../Data/X_train.csv")
+Y_train <- read.csv("../Data/Y_train.csv", header = TRUE)$Condition  # Ensure Y_train is read as a vector
+X_test <- read.csv("../Data/X_test.csv")
+Y_test <- read.csv("../Data/Y_test.csv", header = TRUE)$Condition  # Ensure Y_test is read as a vector
+
+# Convert Y_train as_factor
+if (!is.factor(Y_train)) {
+  Y_train <- as.factor(Y_train)
+}
+```
+
+```{r}
+# Load the nnet library for softmax regression
+library(nnet)
+set.seed(100)
+# Ensure that "2" is one of the levels in Y_train$Condition
+levels(Y_train) <- c(levels(Y_train), "2")
+
+# Relevel Y_train$Condition
+Y_train <- relevel(Y_train, ref = "2")
+
+
+# Train softmax regression model
+softmax_model <- multinom(Y_train ~ ., data = X_train)
+
+```
+
+```{r}
+
+summary(softmax_model)
+
+```
+
+```{r}
+z <- summary(softmax_model)$coefficients/summary(softmax_model)$standard.errors
+z
+```
+
+```{r}
+# 2-tailed z test
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+```
+```{r}
+p < 0.05
+```
+```{r}
+## extract the coefficients from the model and exponentiate
+exp(coef(softmax_model))
+```
+
+```{r}
+
+head(pp <- fitted(softmax_model),7)
+
+```
+
+```{r}
+
+
+# Predictions on test set
+predictions <- predict(softmax_model, newdata = X_test, "class")
+
+
+# Calculate accuracy
+accuracy <- mean(predictions == Y_test)
+print(paste("Accuracy:", accuracy))
+```
+

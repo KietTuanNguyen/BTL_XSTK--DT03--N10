@@ -1,0 +1,53 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+
+```{r}
+# Read file CSV
+X_train <- read.csv("../Data/X_train.csv")
+Y_train <- read.csv("../Data/Y_train.csv", header = TRUE)$Condition  # Ensure Y_train is read as a vector
+X_test <- read.csv("../Data/X_test.csv")
+Y_test <- read.csv("../Data/Y_test.csv", header = TRUE)$Condition  # Ensure Y_test is read as a vector
+
+# Convert Y_train as_factor
+if (!is.factor(Y_train)) {
+  Y_train <- as.factor(Y_train)
+}
+```
+
+```{r}
+library(randomForest)
+
+# Kết hợp dữ liệu huấn luyện thành một dataframe
+train_data <- data.frame(X_train, Y_train)
+train_data$Y_train <- as.factor(train_data$Y_train)
+colnames(train_data)[ncol(train_data)] <- "Y_train"
+set.seed(100)
+# Xây dựng mô hình Random Forest
+model <- randomForest(Y_train ~ ., data = train_data, ntree = 250, mtry = 2, importance = TRUE)
+
+# Dự đoán trên tập dữ liệu kiểm tra
+predictions <- predict(model, X_test)
+
+# Tạo bảng confusion matrix và tính độ chính xác
+confusion_matrix <- table(Y_test, predictions)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+# In kết quả
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 4)))
+
+# Xem độ quan trọng của các biến
+print(importance(model))
+varImpPlot(model)
+
+```
+
+
