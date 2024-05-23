@@ -26,7 +26,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ https://htmlpreview.github.io/?https://github.com/KietTuanNguyen/BTL_XSTK--DT03--N10/blob/2c4c866c82d5691d2e53a335a53c43fc88292256/Code/MLP.nb.html }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
