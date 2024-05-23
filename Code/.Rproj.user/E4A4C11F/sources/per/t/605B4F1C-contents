@@ -1,0 +1,234 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+## Read Data
+```{r Read data}
+# Read data from CSV file
+bridge_data <- read.csv("Last_Year_All_Field_Bridges.csv")
+
+# Print the column names of the data frame
+colnames(bridge_data)
+```
+
+## Select Variable
+```{r Select Variable}
+# Select specific variables (columns) from the data frame
+bridge_data_subset <- bridge_data[, c("Bridge.Age..yr.", "X29...Average.Daily.Traffic",
+                                      "X45...Number.of.Spans.in.Main.Unit", "X49...Structure.Length..ft..",
+                                      "X94...Bridge.Improvement.Cost", "Average.Relative.Humidity",
+                                      "Average.Temperature", "Number.of.Days.with.Temperature.Below.0.C",
+                                      "Time.of.Wetness", "Total.Precipitation", "CAT10...Bridge.Condition")]
+
+```
+
+## Rename Variable
+```{r Rename Variable}
+# Rename the columns
+colnames(bridge_data_subset) <- c("Age", "Traffic", "Spans", "Length",
+                                  "ImprovementCost", "Humidity", "Temperature",
+                                  "DaysBelow0C", "Wetness", "Precipitation", "Condition")
+
+# Print the new column names to verify
+print(colnames(bridge_data_subset))
+```
+
+## Check for missing data
+```{r}
+
+# Check for missing data
+colSums(is.na(bridge_data_subset))
+
+# Remove rows with missing data (if any)
+bridge_data_subset <- na.omit(bridge_data_subset)
+
+print("Check data ")
+colSums(is.na(bridge_data_subset))
+```
+
+
+
+
+## Encode values in the 'Condition' column
+```{r }
+# Check the unique values in the 'Condition' column
+unique_conditions <- unique(bridge_data_subset$Condition)
+print(unique_conditions)
+
+# Encode the unique values as numbers starting from 0
+bridge_data_subset$Condition <- as.numeric(factor(bridge_data_subset$Condition,
+                                          levels = unique_conditions,
+                                          labels = c(0, 1, 2)))
+
+# Print the new encoded values
+print(unique(bridge_data_subset$Condition))
+```
+
+## Summaray data
+```{r}
+summary(bridge_data_subset)
+```
+## Box plot with Age grouped by Condition
+```{r}
+# Create a boxplot with Age grouped by Condition
+boxplot(Age ~ Condition, data = bridge_data_subset,
+        main = "Boxplot of Age Grouped by Condition",
+        xlab = "Condition", ylab = "Age")
+
+# Print out summary statistics for each condition
+summary_data <- by(bridge_data_subset$Age, bridge_data_subset$Condition, summary)
+print(summary_data)
+
+```
+## Box plot with Traffic grouped by Condition
+```{r}
+# Create a boxplot with Age grouped by Condition
+boxplot(Traffic ~ Condition, data = bridge_data_subset,
+        main = "Boxplot of Traffic Grouped by Condition",
+        xlab = "Condition", ylab = "Traffic")
+
+# Print out summary statistics for each condition
+summary_data <- by(bridge_data_subset$Traffic, bridge_data_subset$Condition, summary)
+print(summary_data)
+
+```
+
+
+```{r}
+# Load the corrplot library
+library(corrplot)
+
+# Compute the correlation matrix
+cor_matrix <- cor(bridge_data_subset, use = "complete.obs")
+
+# Plot the correlation matrix displaying correlation coefficients
+corrplot(cor_matrix, method = "number", tl.col = "black", tl.pos = "lt",col = colorRampPalette(c("blue", "white", "red"))(10))
+
+```
+```{r}
+# Load the nnet library for softmax regression
+library(nnet)
+
+# Example data
+X <- bridge_data_subset[, !(names(bridge_data_subset) %in% c("Condition"))]  # Features
+Y <- bridge_data_subset[, "Condition"]  # Target variable (already one-hot encoded)
+
+# Split data into training and testing sets
+set.seed(100)  # Set seed for reproducibility
+train_index <- sample(nrow(X), 0.9 * nrow(X))
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]  # Use only indices to select target values
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]  # Use only indices to select target values
+
+# Train softmax regression model
+softmax_model <- multinom(Y_train ~ ., data = X_train)
+
+
+
+# Predictions on train set
+prediction_train <- predict(softmax_model, newdata = X_train, "class")
+
+
+# Calculate accuracy
+accuracy_train <- mean(prediction_train == Y_train)
+print(paste("Accuracy:", accuracy_train))
+
+
+# Predictions on test set
+predictions <- predict(softmax_model, newdata = X_test, "class")
+
+
+# Calculate accuracy
+accuracy <- mean(predictions == Y_test)
+print(paste("Accuracy:", accuracy))
+
+summary(softmax_model)
+
+```
+```{r Set up Pytorch MLP}
+# Load torch library
+library(torch)
+library(torchvision)
+if(cuda_is_available()){
+  device <- torch_device('cuda')
+} else {
+  device <- torch_device('cpu')
+}
+
+# Convert data to tensors
+X_train <- torch_tensor(as.matrix(X_train), dtype = torch_float())
+X_test <- torch_tensor(as.matrix(X_test), dtype = torch_float())
+Y_train <- torch_tensor(as.numeric(Y_train), dtype = torch_long())  # Adjust labels if needed
+Y_test <- torch_tensor(as.numeric(Y_test), dtype = torch_long())    # Adjust labels if needed
+
+# Define the MLP model with hidden layers
+
+model <- nn_sequential(
+  nn_linear(in_features = ncol(X_train), out_features = 512),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 512, out_features = 256),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 256, out_features = 128),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 128, out_features = 64),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 64, out_features = 32),
+  nn_relu(),
+  nn_dropout(p=0.5),
+  nn_linear(in_features = 32 ,out_features = 3)
+)
+
+
+
+# Define loss function and optimizer
+criterion <- nn_cross_entropy_loss()
+
+optimizer <- optim_rmsprop(model$parameters, lr = 0.001)
+```
+
+
+```{r}
+
+num_epochs <- 500
+
+accuracys_test <- c()
+accuracys_train <- c()
+
+for (epoch in 0:num_epochs) {
+  # Train for one epoch
+    optimizer$zero_grad()
+    Y_pred_train <- model(X_train)
+    Y_pred_test <- model(X_test)
+    loss <- criterion(Y_pred_train, Y_train)
+    loss$backward()
+    optimizer$step()
+    
+    if (epoch%% 5 == 0){
+      predicted_train <- Y_pred_train$argmax(dim = 2)
+      accuracy_train  <- (predicted_train == Y_train)$sum()$item() / Y_train$size()
+      
+      predicted_labels <- Y_pred_test$argmax(dim = 2)
+      accuracy_test <- (predicted_labels == Y_test)$sum()$item() / Y_test$size()
+      
+      cat("Epoch:", epoch, " Loss:", loss$item(), "Accuracy_Train: ", accuracy_train,"Accuracy_Test: ", accuracy_test, "\n" )
+      append(accuracys_train,accuracy_train)
+      append(accuracys_test,accuracy_test)
+    }
+}
+
+# Evaluate the model
+model$eval()
+
+```
+
