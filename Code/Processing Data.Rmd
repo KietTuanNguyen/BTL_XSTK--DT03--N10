@@ -1,6 +1,6 @@
 ---
 title: "Processing Data"
-output: rmarkdown::github_document
+output: html_document
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
@@ -13,6 +13,13 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 # Read data from CSV file
 bridge_data <- read.csv("../Data/Last_Year_All_Field_Bridges.csv")
 
+head(bridge_data,5)
+
+
+```
+
+
+```{r}
 # Print the column names of the data frame
 colnames(bridge_data)
 ```
@@ -185,9 +192,16 @@ library(corrplot)
 # Compute the correlation matrix
 cor_matrix <- cor(bridge_data_subset, use = "complete.obs")
 
-# Plot the correlation matrix displaying correlation coefficients
-corrplot(cor_matrix, method = "number", tl.col = "black", tl.pos = "lt",col = colorRampPalette(c("blue", "white", "red"))(10))
+# Set larger margins
+par(mar = c(1, 1, 1, 1) + 0.05)
 
+# Plot the correlation matrix displaying correlation coefficients
+corrplot(cor_matrix, method = "number", tl.col = "black", tl.pos = "lt",
+         col = colorRampPalette(c("blue", "white", "red"))(10), 
+         number.cex = 0.7)  # Adjust 'number.cex' to change the size of the numbers
+```
+```{r}
+cor_matrix
 ```
 
 
@@ -234,6 +248,16 @@ write.csv(X_test, file = "../Data/X_test.csv", row.names = FALSE)
 write.csv(Y_test, file = "../Data/Y_test.csv", row.names = FALSE)
 
 ```
+
+```{r}
+head(X_train)
+```
+
+```{r}
+head(X_test)
+```
+
+
 
 
 
